@@ -1,0 +1,10 @@
+{
+  "description": "Enhance your exam preparation with AI-driven chat support and comprehensive study materials, tailored for students seeking effective learning solutions.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
