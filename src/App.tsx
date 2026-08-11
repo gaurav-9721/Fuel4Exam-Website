@@ -122,7 +122,7 @@ export default function App() {
               ◈
             </span>
             <span className="text-lg font-semibold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-              ExamAI
+              Fuel4Exam
             </span>
           </div>
 
@@ -198,9 +198,9 @@ export default function App() {
             Pass with confidence.
           </h1>
 
-          <p className="text-lg text-[#6B6B7B] leading-relaxed mb-10 max-w-xl">
-            ExamAI combines an adaptive AI tutor with expert-curated study materials across every major professional
-            and academic exam. Personalized, precise, and available at 3 a.m. when you need it most.
+            <p className="text-lg text-[#6B6B7B] leading-relaxed mb-10 max-w-xl">
+            Fuel4AI combines an adaptive AI tutor with expert-curated study materials across every major professional
+            and academic exam. Fuel your preparation, Fuel your future. Personalized, precise, and available at 3 a.m. when you need it most.
           </p>
 
           <div className="flex flex-wrap gap-4 items-center">
@@ -335,7 +335,7 @@ export default function App() {
               Your tutor is always available. No scheduling required.
             </h2>
             <p className="text-[#9CA3AF] leading-relaxed mb-8">
-              Unlike static flashcards or video lectures, ExamAI understands your specific confusion and responds
+              Unlike static flashcards or video lectures, Fuel4AI understands your specific confusion and responds
               directly. Ask follow-up questions, request worked examples, or simply say "I don't understand" — and
               get a real explanation, not a canned response.
             </p>
@@ -362,7 +362,7 @@ export default function App() {
                 className="text-xs text-[#6B6B7B] font-medium"
                 style={{ fontFamily: "var(--font-mono)" }}
               >
-                ExamAI — Biology · USMLE Step 1
+                Fuel4AI — Biology · USMLE Step 1
               </span>
             </div>
 
@@ -622,8 +622,8 @@ export default function App() {
               <br />
               <em className="not-italic text-[#00C9A7]">Your score is not.</em>
             </h2>
-            <p className="text-[#6B6B7B] leading-relaxed max-w-lg">
-              Join 140,000 students who used ExamAI to close the gap between where they are and where they need to
+              <p className="text-[#6B6B7B] leading-relaxed max-w-lg">
+              Join 140,000 students who used Fuel4Exam to close the gap between where they are and where they need to
               be. Free to start, no credit card required.
             </p>
           </div>
@@ -643,9 +643,9 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-[#6B6B7B]">
           <div className="flex items-center gap-2">
             <span className="text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>◈</span>
-            <span className="font-semibold text-[#111118]" style={{ fontFamily: "var(--font-display)" }}>ExamAI</span>
+            <span className="font-semibold text-[#111118]" style={{ fontFamily: "var(--font-display)" }}>Fuel4Exam</span>
             <span className="mx-3">·</span>
-            <span>© 2026 ExamAI Inc.</span>
+            <span>© 2026 Fuel4Exam Inc.</span>
           </div>
           <div className="flex gap-6">
             {["Privacy", "Terms", "Accessibility", "Contact"].map((l) => (

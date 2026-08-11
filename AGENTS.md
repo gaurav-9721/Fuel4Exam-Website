@@ -1,4 +1,4 @@
-# figma-make-app
+# Fuel4Exam
 
 React + Vite + Tailwind CSS project running inside Figma Make.
 
