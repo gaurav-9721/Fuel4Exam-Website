@@ -1,4 +1,311 @@
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
+
+type AuthMode = "login" | "signup"
+
+type AuthForm = {
+  fullName: string
+  email: string
+  phone: string
+  password: string
+}
+
+type AuthDialogProps = {
+  mode: AuthMode
+  onClose: () => void
+  onModeChange: (mode: AuthMode) => void
+  onAuthenticated: (userName: string) => void
+}
+
+type UserProfile = {
+  user_id: number
+  public_id: string
+  full_name: string
+  email: string
+  phone: string | null
+  role_id: number
+  is_email_verified: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  last_login_at: string | null
+  city: string | null
+  date_of_birth: string | null
+  avatar_url: string | null
+  bio: string | null
+  profile_updated_at: string | null
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1"
+
+function AuthDialog({ mode, onClose, onModeChange, onAuthenticated }: AuthDialogProps) {
+  const [form, setForm] = useState<AuthForm>({ fullName: "", email: "", phone: "", password: "" })
+  const [statusMessage, setStatusMessage] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const updateField = (field: keyof AuthForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+    setErrorMessage("")
+    setStatusMessage("")
+  }
+
+  const getErrorMessage = async (response: Response) => {
+    try {
+      const body = await response.json()
+      if (typeof body.detail === "string") return body.detail
+      if (Array.isArray(body.detail)) return body.detail[0]?.msg || "Please check your details."
+    } catch {
+      // Use the fallback below when the server does not return JSON.
+    }
+    return "Something went wrong. Please try again."
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setErrorMessage("")
+    setStatusMessage("")
+
+    const endpoint = mode === "signup" ? "/auth/register" : "/auth/login"
+    const payload =
+      mode === "signup"
+        ? { full_name: form.fullName.trim(), email: form.email.trim(), phone: form.phone.trim() || null, password: form.password }
+        : { email: form.email.trim(), password: form.password }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(await getErrorMessage(response))
+      }
+
+      const data = await response.json()
+      if (mode === "signup") {
+        setStatusMessage("Your account is ready. Sign in to start studying.")
+        setForm((current) => ({ ...current, password: "" }))
+        onModeChange("login")
+      } else {
+        localStorage.setItem("fuel4exam_access_token", data.access_token)
+        localStorage.setItem("fuel4exam_refresh_token", data.refresh_token)
+        onAuthenticated(data.user?.full_name || form.email)
+        onClose()
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to connect to Fuel4Exam.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#111118]/70 px-4 py-8 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div className="relative grid max-h-[calc(100vh-4rem)] w-full max-w-4xl overflow-auto rounded-3xl bg-[#F4F4EF] shadow-2xl md:grid-cols-[0.85fr_1.15fr]">
+        <button onClick={onClose} className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#DDDDD8] text-lg text-[#6B6B7B] transition-colors hover:border-[#111118] hover:text-[#111118]" aria-label="Close authentication dialog">
+          ×
+        </button>
+
+        <div className="hidden bg-[#111118] p-10 text-[#F4F4EF] md:flex md:flex-col md:justify-between">
+          <div>
+            <div className="mb-12 flex items-center gap-2">
+              <span className="text-xl font-bold text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>◈</span>
+              <span className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>Fuel4Exam</span>
+            </div>
+            <p className="mb-4 text-xs font-medium uppercase tracking-widest text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>
+              {mode === "signup" ? "Your next score" : "Welcome back"}
+            </p>
+            <h2 className="max-w-xs text-4xl font-light leading-tight" style={{ fontFamily: "var(--font-display)" }}>
+              {mode === "signup" ? "Build a study habit that compounds." : "Pick up where your preparation left off."}
+            </h2>
+          </div>
+          <div className="border-t border-[#2A2A38] pt-5 text-sm leading-relaxed text-[#9CA3AF]">
+            <span className="text-[#00C9A7]">✦</span> Adaptive practice, expert materials, and an AI tutor in one place.
+          </div>
+        </div>
+
+        <div className="p-7 pt-16 sm:p-10 sm:pt-16">
+          <div className="mb-8 md:hidden">
+            <div className="mb-8 flex items-center gap-2">
+              <span className="text-xl font-bold text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>◈</span>
+              <span className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>Fuel4Exam</span>
+            </div>
+          </div>
+          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-[#00A88B]" style={{ fontFamily: "var(--font-mono)" }}>
+            {mode === "signup" ? "Create account" : "Member access"}
+          </p>
+          <h2 id="auth-title" className="mb-2 text-4xl font-light" style={{ fontFamily: "var(--font-display)" }}>
+            {mode === "signup" ? "Start studying free." : "Sign in to Fuel4Exam."}
+          </h2>
+          <p className="mb-8 text-sm text-[#6B6B7B]">
+            {mode === "signup" ? "No credit card required. Your candidate account is created instantly." : "Your study dashboard is waiting for you."}
+          </p>
+
+          {statusMessage && <div className="mb-5 rounded-xl border border-[#00C9A7]/40 bg-[#00C9A7]/10 px-4 py-3 text-sm text-[#007A67]">{statusMessage}</div>}
+          {errorMessage && <div className="mb-5 rounded-xl border border-[#E3A4A4] bg-[#FFF1F1] px-4 py-3 text-sm text-[#A33A3A]">{errorMessage}</div>}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "signup" && (
+              <label className="block text-sm font-medium text-[#111118]">
+                Full name
+                <input required minLength={1} maxLength={255} value={form.fullName} onChange={(event) => updateField("fullName", event.target.value)} className="auth-input" placeholder="Alex Morgan" />
+              </label>
+            )}
+            <label className="block text-sm font-medium text-[#111118]">
+              Email address
+              <input required type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} className="auth-input" placeholder="you@example.com" autoComplete="email" />
+            </label>
+            {mode === "signup" && (
+              <label className="block text-sm font-medium text-[#111118]">
+                Phone <span className="font-normal text-[#6B6B7B]">(optional)</span>
+                <input maxLength={20} value={form.phone} onChange={(event) => updateField("phone", event.target.value)} className="auth-input" placeholder="+1 555 012 3456" autoComplete="tel" />
+              </label>
+            )}
+            <label className="block text-sm font-medium text-[#111118]">
+              Password
+              <input required minLength={mode === "signup" ? 8 : 1} maxLength={72} type="password" value={form.password} onChange={(event) => updateField("password", event.target.value)} className="auth-input" placeholder={mode === "signup" ? "At least 8 characters" : "Enter your password"} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
+            </label>
+            <button disabled={isSubmitting} className="w-full rounded-full bg-[#00C9A7] py-3.5 text-sm font-semibold text-[#111118] transition-colors hover:bg-[#00A88B] disabled:cursor-wait disabled:opacity-60">
+              {isSubmitting ? "Connecting..." : mode === "signup" ? "Create my account" : "Sign in"}
+            </button>
+          </form>
+
+          <p className="mt-7 text-center text-sm text-[#6B6B7B]">
+            {mode === "signup" ? "Already have an account?" : "New to Fuel4Exam?"}{" "}
+            <button type="button" onClick={() => { setErrorMessage(""); setStatusMessage(""); onModeChange(mode === "signup" ? "login" : "signup") }} className="font-semibold text-[#111118] underline decoration-[#00C9A7] decoration-2 underline-offset-4">
+              {mode === "signup" ? "Sign in" : "Create an account"}
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type ProfilePageProps = {
+  profile: UserProfile | null
+  isLoading: boolean
+  errorMessage: string
+  onBack: () => void
+  onRetry: () => void
+}
+
+function ProfilePage({ profile, isLoading, errorMessage, onBack, onRetry }: ProfilePageProps) {
+  const formatDate = (value: string | null) => {
+    if (!value) return "Not added yet"
+    return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value))
+  }
+
+  const initials = profile?.full_name
+    ?.split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+
+  return (
+    <div className="min-h-screen bg-[#F4F4EF] text-[#111118]">
+      <header className="border-b border-[#DDDDD8] bg-[#F4F4EF]/95">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+          <button onClick={onBack} className="flex items-center gap-2" aria-label="Back to Fuel4Exam home">
+            <span className="text-xl font-bold text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>◈</span>
+            <span className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)" }}>Fuel4Exam</span>
+          </button>
+          <button onClick={onBack} className="text-sm font-medium text-[#6B6B7B] transition-colors hover:text-[#111118]">
+            ← Back to home
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+        <div className="mb-10">
+          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-[#00A88B]" style={{ fontFamily: "var(--font-mono)" }}>Your account</p>
+          <h1 className="text-5xl font-light leading-tight" style={{ fontFamily: "var(--font-display)" }}>Profile & progress.</h1>
+          <p className="mt-3 max-w-xl text-[#6B6B7B]">Keep your account details current as you build your next exam-ready version.</p>
+        </div>
+
+        {isLoading && (
+          <div className="rounded-3xl border border-[#DDDDD8] bg-white p-10 text-center text-[#6B6B7B]">Loading your profile...</div>
+        )}
+
+        {!isLoading && errorMessage && (
+          <div className="rounded-3xl border border-[#E3A4A4] bg-[#FFF1F1] p-8">
+            <p className="font-medium text-[#A33A3A]">{errorMessage}</p>
+            <button onClick={onRetry} className="mt-5 rounded-full bg-[#111118] px-5 py-2.5 text-sm font-semibold text-[#F4F4EF] transition-colors hover:bg-[#2A2A38]">Try again</button>
+          </div>
+        )}
+
+        {!isLoading && !errorMessage && profile && (
+          <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+            <section className="rounded-3xl bg-[#111118] p-8 text-[#F4F4EF] md:p-10">
+              <div className="flex items-center gap-5">
+                {profile.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.full_name} className="h-20 w-20 rounded-2xl object-cover" />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#00C9A7] text-2xl font-semibold text-[#111118]" style={{ fontFamily: "var(--font-display)" }}>{initials}</div>
+                )}
+                <div>
+                  <h2 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-display)" }}>{profile.full_name}</h2>
+                  <p className="mt-1 text-sm text-[#9CA3AF]">{profile.email}</p>
+                </div>
+              </div>
+              <div className="mt-10 border-t border-[#2A2A38] pt-6">
+                <p className="text-xs font-medium uppercase tracking-widest text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>Account status</p>
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <span className="text-[#9CA3AF]">Membership</span>
+                  <span className="rounded-full bg-[#00C9A7]/15 px-3 py-1 text-[#00C9A7]">Candidate</span>
+                </div>
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <span className="text-[#9CA3AF]">Email verification</span>
+                  <span className={profile.is_email_verified ? "text-[#00C9A7]" : "text-[#F59E0B]"}>{profile.is_email_verified ? "Verified" : "Pending"}</span>
+                </div>
+                <div className="mt-4 flex items-center justify-between text-sm">
+                  <span className="text-[#9CA3AF]">Member since</span>
+                  <span>{formatDate(profile.created_at)}</span>
+                </div>
+              </div>
+              <div className="mt-10 rounded-2xl bg-[#1A1A2A] p-5">
+                <p className="text-xs font-medium uppercase tracking-widest text-[#00C9A7]" style={{ fontFamily: "var(--font-mono)" }}>Study note</p>
+                <p className="mt-3 text-sm leading-relaxed text-[#D1D5DB]">Your profile is the starting point. Your consistency is what moves the score.</p>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-[#DDDDD8] bg-white p-8 md:p-10">
+              <div className="mb-8 flex items-end justify-between gap-4 border-b border-[#DDDDD8] pb-6">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-widest text-[#00A88B]" style={{ fontFamily: "var(--font-mono)" }}>Personal details</p>
+                  <h2 className="mt-2 text-3xl font-light" style={{ fontFamily: "var(--font-display)" }}>About you</h2>
+                </div>
+                <span className="text-xs text-[#6B6B7B]">ID #{profile.user_id}</span>
+              </div>
+              <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
+                {[
+                  ["Full name", profile.full_name],
+                  ["Email address", profile.email],
+                  ["Phone", profile.phone || "Not added yet"],
+                  ["City", profile.city || "Not added yet"],
+                  ["Date of birth", formatDate(profile.date_of_birth)],
+                  ["Last login", formatDate(profile.last_login_at)],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <p className="text-xs uppercase tracking-wider text-[#6B6B7B]" style={{ fontFamily: "var(--font-mono)" }}>{label}</p>
+                    <p className="mt-2 text-sm font-medium text-[#111118]">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-10 border-t border-[#DDDDD8] pt-7">
+                <p className="text-xs uppercase tracking-wider text-[#6B6B7B]" style={{ fontFamily: "var(--font-mono)" }}>Bio</p>
+                <p className="mt-3 text-sm leading-relaxed text-[#6B6B7B]">{profile.bio || "Add a short note about your exam goals when profile editing is enabled."}</p>
+              </div>
+            </section>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
 
 const NAV_LINKS = ["Features", "Subjects", "Materials", "Pricing"]
 
@@ -108,6 +415,71 @@ export default function App() {
   const [chatInput, setChatInput] = useState("")
   const [activeSubject, setActiveSubject] = useState("SAT")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [authMode, setAuthMode] = useState<AuthMode | null>(null)
+  const [signedInUser, setSignedInUser] = useState("")
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState("")
+
+  const openAuth = (mode: AuthMode) => {
+    setAuthMode(mode)
+    setMobileMenuOpen(false)
+  }
+
+  const signOut = () => {
+    localStorage.removeItem("fuel4exam_access_token")
+    localStorage.removeItem("fuel4exam_refresh_token")
+    setSignedInUser("")
+    setProfile(null)
+    setProfileOpen(false)
+  }
+
+  const openProfile = async () => {
+    const accessToken = localStorage.getItem("fuel4exam_access_token")
+    setProfileOpen(true)
+    setProfileLoading(true)
+    setProfileError("")
+
+    if (!accessToken) {
+      setProfileLoading(false)
+      setProfileError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!response.ok) {
+        let message = "Unable to load your profile."
+        try {
+          const body = await response.json()
+          if (typeof body.detail === "string") message = body.detail
+        } catch {
+          // Keep the fallback message for non-JSON server responses.
+        }
+        throw new Error(message)
+      }
+      setProfile(await response.json())
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "Unable to load your profile.")
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  if (profileOpen) {
+    return (
+      <ProfilePage
+        profile={profile}
+        isLoading={profileLoading}
+        errorMessage={profileError}
+        onBack={() => setProfileOpen(false)}
+        onRetry={openProfile}
+      />
+    )
+  }
 
   return (
     <div style={{ fontFamily: "var(--font-body)" }} className="min-h-screen bg-[#F4F4EF] text-[#111118]">
@@ -139,11 +511,17 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button className="hidden md:block text-sm font-medium text-[#6B6B7B] hover:text-[#111118] transition-colors">
-              Sign in
-            </button>
-            <button className="bg-[#111118] text-[#F4F4EF] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#2A2A38] transition-colors">
-              Get started
+            {signedInUser ? (
+              <button onClick={signOut} className="hidden md:block text-sm font-medium text-[#6B6B7B] hover:text-[#111118] transition-colors">
+                Sign out
+              </button>
+            ) : (
+              <button onClick={() => openAuth("login")} className="hidden md:block text-sm font-medium text-[#6B6B7B] hover:text-[#111118] transition-colors">
+                Sign in
+              </button>
+            )}
+            <button onClick={signedInUser ? openProfile : () => openAuth("signup")} className="bg-[#111118] text-[#F4F4EF] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#2A2A38] transition-colors">
+              {signedInUser ? `Hi, ${signedInUser.split(" ")[0]}` : "Get started"}
             </button>
             <button
               className="md:hidden p-1 text-[#6B6B7B]"
@@ -204,7 +582,7 @@ export default function App() {
           </p>
 
           <div className="flex flex-wrap gap-4 items-center">
-            <button className="bg-[#00C9A7] hover:bg-[#00A88B] text-[#111118] font-semibold px-8 py-3.5 rounded-full transition-colors text-sm">
+            <button onClick={() => openAuth("signup")} className="bg-[#00C9A7] hover:bg-[#00A88B] text-[#111118] font-semibold px-8 py-3.5 rounded-full transition-colors text-sm">
               Start studying free
             </button>
             <button className="flex items-center gap-2 text-sm font-medium text-[#6B6B7B] hover:text-[#111118] transition-colors">
@@ -274,7 +652,7 @@ export default function App() {
               ))}
             </div>
 
-            <button className="w-full bg-[#00C9A7] hover:bg-[#00A88B] text-[#111118] font-semibold text-sm py-3 rounded-xl transition-colors">
+                <button onClick={() => openAuth("login")} className="w-full bg-[#00C9A7] hover:bg-[#00A88B] text-[#111118] font-semibold text-sm py-3 rounded-xl transition-colors">
               Continue session
             </button>
           </div>
@@ -486,7 +864,7 @@ export default function App() {
                 PDFs, flashcard decks, video series, and full-length simulations — all updated to match the latest
                 exam blueprints and available the moment you enroll.
               </p>
-              <button className="bg-[#111118] text-[#F4F4EF] text-sm font-semibold px-6 py-3 rounded-full hover:bg-[#2A2A38] transition-colors">
+                <button onClick={() => openAuth("signup")} className="bg-[#111118] text-[#F4F4EF] text-sm font-semibold px-6 py-3 rounded-full hover:bg-[#2A2A38] transition-colors">
                 Browse all materials
               </button>
             </div>
@@ -628,7 +1006,7 @@ export default function App() {
             </p>
           </div>
           <div className="flex flex-col gap-3">
-            <button className="bg-[#00C9A7] hover:bg-[#00A88B] text-[#111118] font-semibold px-10 py-4 rounded-full transition-colors text-sm whitespace-nowrap">
+            <button onClick={() => openAuth("signup")} className="bg-[#00C9A7] hover:bg-[#00A88B] text-[#111118] font-semibold px-10 py-4 rounded-full transition-colors text-sm whitespace-nowrap">
               Start studying free
             </button>
             <button className="text-sm text-center text-[#6B6B7B] hover:text-[#111118] transition-colors">
@@ -656,6 +1034,14 @@ export default function App() {
           </div>
         </div>
       </footer>
+      {authMode && (
+        <AuthDialog
+          mode={authMode}
+          onClose={() => setAuthMode(null)}
+          onModeChange={setAuthMode}
+          onAuthenticated={setSignedInUser}
+        />
+      )}
     </div>
   )
 }

@@ -28,6 +28,28 @@ html {
   scroll-behavior: smooth;
 }
 
+.auth-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-card);
+  padding: 0.8rem 1rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.auth-input::placeholder {
+  color: var(--color-muted);
+}
+
+.auth-input:focus {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px rgb(0 201 167 / 15%);
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
